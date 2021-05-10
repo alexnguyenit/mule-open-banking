@@ -1,0 +1,79 @@
+#%RAML 1.0
+title: Banking Api
+
+protocols: [HTTP, HTTPS]
+
+/accounts:
+  post:
+    description: 
+      Post Data
+    body:
+      application/json:
+        example: !include examples/account.json
+          
+    responses:
+      201:
+        body:
+          application/json:
+            example: !include examples/accountResp.json
+              
+  get:
+    description: 
+      List All Accounts
+    queryParameters:
+      customerId:
+        type: string
+        required: true
+        example: "123232"
+    responses:
+      200:
+        body:
+          application/json:
+            example: !include examples/accountResp.json
+          
+  /{accountId}:
+    get:
+      description:
+        Get Account
+      responses:
+        200:
+          body:
+            application/json:
+              example: !include examples/accountResp.json                
+    /balances:
+      get:
+        description: 
+          Get balances
+        responses:
+          200:
+            body:
+              application/json:
+                example: !include examples/balances.json
+
+    /transactions:
+      get:
+        description: 
+          Get transactions
+        queryParameters:
+          fromDate:
+            type: string
+            required: true
+            example: "2019-10-20"
+          toDate:
+            type: string
+            required: true
+            example: "2021-10-20"
+        responses:
+          200:
+            body:
+              application/json:
+                example: !include examples/transaction.json
+      /{transactionId}:
+        get:
+          description: 
+            Get transaction
+          responses:
+            200:
+              body:
+                application/json:
+                  example: !include examples/transaction.json

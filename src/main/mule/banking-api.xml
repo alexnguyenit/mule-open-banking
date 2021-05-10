@@ -1,0 +1,472 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mule xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:apikit="http://www.mulesoft.org/schema/mule/mule-apikit" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd http://www.mulesoft.org/schema/mule/mule-apikit http://www.mulesoft.org/schema/mule/mule-apikit/current/mule-apikit.xsd ">
+    <http:listener-config name="banking-api-httpListenerConfig">
+        <http:listener-connection host="0.0.0.0" port="8081" />
+    </http:listener-config>
+    <apikit:config name="banking-api-config" api="banking-api.raml" outboundHeadersMapName="outboundHeaders" httpStatusVarName="httpStatus" />
+    <flow name="banking-api-main">
+        <http:listener config-ref="banking-api-httpListenerConfig" path="/api/*">
+            <http:response statusCode="#[vars.httpStatus default 200]">
+                <http:headers>#[vars.outboundHeaders default {}]</http:headers>
+            </http:response>
+            <http:error-response statusCode="#[vars.httpStatus default 500]">
+                <http:body>#[payload]</http:body>
+                <http:headers>#[vars.outboundHeaders default {}]</http:headers>
+            </http:error-response>
+        </http:listener>
+        <apikit:router config-ref="banking-api-config" />
+        <error-handler>
+            <on-error-propagate type="APIKIT:BAD_REQUEST">
+                <ee:transform xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{message: "Bad request"}]]></ee:set-payload>
+                    </ee:message>
+                    <ee:variables>
+                        <ee:set-variable variableName="httpStatus">400</ee:set-variable>
+                    </ee:variables>
+                </ee:transform>
+            </on-error-propagate>
+            <on-error-propagate type="APIKIT:NOT_FOUND">
+                <ee:transform xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{message: "Resource not found"}]]></ee:set-payload>
+                    </ee:message>
+                    <ee:variables>
+                        <ee:set-variable variableName="httpStatus">404</ee:set-variable>
+                    </ee:variables>
+                </ee:transform>
+            </on-error-propagate>
+            <on-error-propagate type="APIKIT:METHOD_NOT_ALLOWED">
+                <ee:transform xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{message: "Method not allowed"}]]></ee:set-payload>
+                    </ee:message>
+                    <ee:variables>
+                        <ee:set-variable variableName="httpStatus">405</ee:set-variable>
+                    </ee:variables>
+                </ee:transform>
+            </on-error-propagate>
+            <on-error-propagate type="APIKIT:NOT_ACCEPTABLE">
+                <ee:transform xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{message: "Not acceptable"}]]></ee:set-payload>
+                    </ee:message>
+                    <ee:variables>
+                        <ee:set-variable variableName="httpStatus">406</ee:set-variable>
+                    </ee:variables>
+                </ee:transform>
+            </on-error-propagate>
+            <on-error-propagate type="APIKIT:UNSUPPORTED_MEDIA_TYPE">
+                <ee:transform xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{message: "Unsupported media type"}]]></ee:set-payload>
+                    </ee:message>
+                    <ee:variables>
+                        <ee:set-variable variableName="httpStatus">415</ee:set-variable>
+                    </ee:variables>
+                </ee:transform>
+            </on-error-propagate>
+            <on-error-propagate type="APIKIT:NOT_IMPLEMENTED">
+                <ee:transform xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{message: "Not Implemented"}]]></ee:set-payload>
+                    </ee:message>
+                    <ee:variables>
+                        <ee:set-variable variableName="httpStatus">501</ee:set-variable>
+                    </ee:variables>
+                </ee:transform>
+            </on-error-propagate>
+        </error-handler>
+    </flow>
+    <flow name="banking-api-console">
+        <http:listener config-ref="banking-api-httpListenerConfig" path="/console/*">
+            <http:response statusCode="#[vars.httpStatus default 200]">
+                <http:headers>#[vars.outboundHeaders default {}]</http:headers>
+            </http:response>
+            <http:error-response statusCode="#[vars.httpStatus default 500]">
+                <http:body>#[payload]</http:body>
+                <http:headers>#[vars.outboundHeaders default {}]</http:headers>
+            </http:error-response>
+        </http:listener>
+        <apikit:console config-ref="banking-api-config" />
+        <error-handler>
+            <on-error-propagate type="APIKIT:NOT_FOUND">
+                <ee:transform xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{message: "Resource not found"}]]></ee:set-payload>
+                    </ee:message>
+                    <ee:variables>
+                        <ee:set-variable variableName="httpStatus">404</ee:set-variable>
+                    </ee:variables>
+                </ee:transform>
+            </on-error-propagate>
+        </error-handler>
+    </flow>
+    <flow name="get:\accounts:banking-api-config">
+        <ee:transform xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+            <ee:message>
+                <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+  Data: {
+    Account: [
+      {
+        AccountId: "22289",
+        Status: "Enabled",
+        StatusUpdateDateTime: "2019-01-01T06:06:06+00:00",
+        Currency: "GBP",
+        AccountType: "Personal",
+        AccountSubType: "CurrentAccount",
+        Nickname: "Bills",
+        Account: [
+          {
+            SchemeName: "UK.OBIE.SortCodeAccountNumber",
+            Identification: "80200110203345",
+            Name: "Mr Kevin",
+            SecondaryIdentification: "00021"
+          }
+        ]
+      }
+    ]
+  },
+  Links: {
+    Self: "https://api.alphabank.com/open-banking/v3.1/aisp/accounts/22289"
+  },
+  Meta: {
+    TotalPages: 1
+  }
+}]]></ee:set-payload>
+            </ee:message>
+        </ee:transform>
+    </flow>
+    <flow name="get:\accounts\(accountId)\balances:banking-api-config">
+        <ee:transform xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core">
+            <ee:variables>
+                <ee:set-variable variableName="accountId">attributes.uriParams.'accountId'</ee:set-variable>
+            </ee:variables>
+        </ee:transform>
+        <ee:transform xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+            <ee:message>
+                <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+  AccountId: "22289",
+  Amount: {
+    Amount: "800.00",
+    Currency: "GBP"
+  },
+  CreditDebitIndicator: "Credit",
+  Type: "InterimAvailable",
+  DateTime: "2017-04-05T10:43:07+00:00",
+  CreditLine: [
+    {
+      Included: false,
+      Amount: {
+        Amount: "500.00",
+        Currency: "GBP"
+      },
+      Type: "Available"
+    }, 
+    {
+      Included: true,
+      Amount: {
+        Amount: "500.00",
+        Currency: "GBP"
+      },
+      Type: "Temporary"
+    }
+  ],
+  Links: {
+    Self: "https://api.alphabank.com/open-banking/v3.1/aisp/accounts/22289/balances/"
+  },
+  Meta: {
+    TotalPages: 1
+  }
+}]]></ee:set-payload>
+            </ee:message>
+        </ee:transform>
+    </flow>
+    <flow name="get:\accounts\(accountId)\transactions:banking-api-config">
+        <ee:transform xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core">
+            <ee:variables>
+                <ee:set-variable variableName="accountId">attributes.uriParams.'accountId'</ee:set-variable>
+            </ee:variables>
+        </ee:transform>
+        <ee:transform xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+            <ee:message>
+                <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+  Data: {
+    Transaction: [
+      {
+        AccountId: "22289",
+        TransactionId: "123",
+        TransactionReference: "Ref 123",
+        Amount: {
+          Amount: "10.00",
+          Currency: "GBP"
+        },
+        CreditDebitIndicator: "Credit",
+        Status: "Booked",
+        BookingDateTime: "2017-04-05T10:43:07+00:00",
+        ValueDateTime: "2017-04-05T10:45:22+00:00",
+        TransactionInformation: "Cash from Aubrey",
+        BankTransactionCode: {
+          Code: "ReceivedCreditTransfer",
+          SubCode: "DomesticCreditTransfer"
+        },
+        ProprietaryBankTransactionCode: {
+          Code: "Transfer",
+          Issuer: "AlphaBank"
+        },
+        Balance: {
+          Amount: {
+            Amount: "230.00",
+            Currency: "GBP"
+          },
+          CreditDebitIndicator: "Credit",
+          Type: "InterimBooked"
+        }
+      }, 
+      {
+        AccountId: "31820",
+        TransactionId: "567",
+        TransactionReference: "Ref 124",
+        Amount: {
+          Amount: "100.00",
+          Currency: "GBP"
+        },
+        CreditDebitIndicator: "Debit",
+        Status: "Booked",
+        BookingDateTime: "2017-05-02T14:22:09+00:00",
+        ValueDateTime: "2017-05-02T14:22:09+00:00",
+        TransactionInformation: "Paid the gas bill",
+        AddressLine: "Coventry",
+        BankTransactionCode: {
+          Code: "IssuedCreditTransfer",
+          SubCode: "AutomaticTransfer"
+        },
+        ProprietaryBankTransactionCode: {
+          Code: "DirectDebit",
+          Issuer: "AlphaBank"
+        },
+        Balance: {
+          Amount: {
+            Amount: "57.36",
+            Currency: "GBP"
+          },
+          CreditDebitIndicator: "Debit",
+          Type: "InterimBooked"
+        }
+      }
+    ]
+  },
+  Links: {
+    Self: "https://api.alphabank.com/open-banking/v3.1/aisp/transactions"
+  },
+  Meta: {
+    TotalPages: 1,
+    FirstAvailableDateTime: "2017-05-03T00:00:00+00:00",
+    LastAvailableDateTime: "2017-12-03T00:00:00+00:00"
+  }
+}]]></ee:set-payload>
+            </ee:message>
+        </ee:transform>
+    </flow>
+    <flow name="get:\accounts\(accountId):banking-api-config">
+        <ee:transform xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core">
+            <ee:variables>
+                <ee:set-variable variableName="accountId">attributes.uriParams.'accountId'</ee:set-variable>
+            </ee:variables>
+        </ee:transform>
+        <ee:transform xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+            <ee:message>
+                <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+  Data: {
+    Account: [
+      {
+        AccountId: "22289",
+        Status: "Enabled",
+        StatusUpdateDateTime: "2019-01-01T06:06:06+00:00",
+        Currency: "GBP",
+        AccountType: "Personal",
+        AccountSubType: "CurrentAccount",
+        Nickname: "Bills",
+        Account: [
+          {
+            SchemeName: "UK.OBIE.SortCodeAccountNumber",
+            Identification: "80200110203345",
+            Name: "Mr Kevin",
+            SecondaryIdentification: "00021"
+          }
+        ]
+      }
+    ]
+  },
+  Links: {
+    Self: "https://api.alphabank.com/open-banking/v3.1/aisp/accounts/22289"
+  },
+  Meta: {
+    TotalPages: 1
+  }
+}]]></ee:set-payload>
+            </ee:message>
+        </ee:transform>
+    </flow>
+    <flow name="get:\accounts\(accountId)\transactions\(transactionId):banking-api-config">
+        <ee:transform xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core">
+            <ee:variables>
+                <ee:set-variable variableName="accountId">attributes.uriParams.'accountId'</ee:set-variable>
+                <ee:set-variable variableName="transactionId">attributes.uriParams.'transactionId'</ee:set-variable>
+            </ee:variables>
+        </ee:transform>
+        <ee:transform xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+            <ee:message>
+                <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+  Data: {
+    Transaction: [
+      {
+        AccountId: "22289",
+        TransactionId: "123",
+        TransactionReference: "Ref 123",
+        Amount: {
+          Amount: "10.00",
+          Currency: "GBP"
+        },
+        CreditDebitIndicator: "Credit",
+        Status: "Booked",
+        BookingDateTime: "2017-04-05T10:43:07+00:00",
+        ValueDateTime: "2017-04-05T10:45:22+00:00",
+        TransactionInformation: "Cash from Aubrey",
+        BankTransactionCode: {
+          Code: "ReceivedCreditTransfer",
+          SubCode: "DomesticCreditTransfer"
+        },
+        ProprietaryBankTransactionCode: {
+          Code: "Transfer",
+          Issuer: "AlphaBank"
+        },
+        Balance: {
+          Amount: {
+            Amount: "230.00",
+            Currency: "GBP"
+          },
+          CreditDebitIndicator: "Credit",
+          Type: "InterimBooked"
+        }
+      }, 
+      {
+        AccountId: "31820",
+        TransactionId: "567",
+        TransactionReference: "Ref 124",
+        Amount: {
+          Amount: "100.00",
+          Currency: "GBP"
+        },
+        CreditDebitIndicator: "Debit",
+        Status: "Booked",
+        BookingDateTime: "2017-05-02T14:22:09+00:00",
+        ValueDateTime: "2017-05-02T14:22:09+00:00",
+        TransactionInformation: "Paid the gas bill",
+        AddressLine: "Coventry",
+        BankTransactionCode: {
+          Code: "IssuedCreditTransfer",
+          SubCode: "AutomaticTransfer"
+        },
+        ProprietaryBankTransactionCode: {
+          Code: "DirectDebit",
+          Issuer: "AlphaBank"
+        },
+        Balance: {
+          Amount: {
+            Amount: "57.36",
+            Currency: "GBP"
+          },
+          CreditDebitIndicator: "Debit",
+          Type: "InterimBooked"
+        }
+      }
+    ]
+  },
+  Links: {
+    Self: "https://api.alphabank.com/open-banking/v3.1/aisp/transactions"
+  },
+  Meta: {
+    TotalPages: 1,
+    FirstAvailableDateTime: "2017-05-03T00:00:00+00:00",
+    LastAvailableDateTime: "2017-12-03T00:00:00+00:00"
+  }
+}]]></ee:set-payload>
+            </ee:message>
+        </ee:transform>
+    </flow>
+    <flow name="post:\accounts:application\json:banking-api-config">
+        <ee:transform xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+            <ee:message>
+                <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+  Data: {
+    Account: [
+      {
+        AccountId: "22289",
+        Status: "Enabled",
+        StatusUpdateDateTime: "2019-01-01T06:06:06+00:00",
+        Currency: "GBP",
+        AccountType: "Personal",
+        AccountSubType: "CurrentAccount",
+        Nickname: "Bills",
+        Account: [
+          {
+            SchemeName: "UK.OBIE.SortCodeAccountNumber",
+            Identification: "80200110203345",
+            Name: "Mr Kevin",
+            SecondaryIdentification: "00021"
+          }
+        ]
+      }
+    ]
+  },
+  Links: {
+    Self: "https://api.alphabank.com/open-banking/v3.1/aisp/accounts/22289"
+  },
+  Meta: {
+    TotalPages: 1
+  }
+}]]></ee:set-payload>
+            </ee:message>
+        </ee:transform>
+    </flow>
+</mule>
