@@ -28,14 +28,14 @@
 			<plugin>
 				<groupId>org.mule.tools.maven</groupId>
 				<artifactId>mule-maven-plugin</artifactId>
-				<version>3.5.0</version>
+				<version>${mule.maven.plugin.version}</version>
 				<extensions>true</extensions>
 				<configuration>
 				    <cloudHubDeployment>
 				      <uri>https://anypoint.mulesoft.com</uri>
 				      <muleVersion>${muleVersion}</muleVersion>
-				      <username>${username}</username>
-				      <password>${password}</password>
+				      <username>nnhoang1052021</username>
+				      <password>NNHoang123</password>
 				      <applicationName>cmc-open-banking</applicationName>
 				      <environment>Sandbox</environment>
 				      <region>${region}</region>
